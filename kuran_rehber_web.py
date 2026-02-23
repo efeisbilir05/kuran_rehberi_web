@@ -123,8 +123,9 @@ if data:
                     unsafe_allow_html=True)
 
         elif menu == "🔍 Detaylı Arama":
-        st.title("🔍 Kelime İle Ayet Ara")
-        kelime = st.text_input("Aramak istediğiniz kavram (Örn: Adalet, Namaz, Allah):")
+    
+           st.title("🔍 Kelime İle Ayet Ara")
+           kelime = st.text_input("Aramak istediğiniz kavram (Örn: Adalet, Namaz, Allah):")
         
         if kelime:
             # Tüm sonuçları bul
