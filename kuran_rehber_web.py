@@ -5,10 +5,10 @@ from PIL import Image, ImageDraw, ImageFont, ImageOps
 import textwrap
 import io
 
-# 1. SAYFA AYARLARI
+
 st.set_page_config(page_title="Kur'an-ı Kerim Dijital Rehber", page_icon="📖", layout="centered")
 
-# CSS ile Şık Görünüm (Opsiyonel)
+
 st.markdown("""
     <style>
     .main { background-color: #0e1117; }
@@ -24,7 +24,7 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 
-# 2. VERİ YÜKLEME
+
 @st.cache_data
 def veriyi_yukle():
     try:
@@ -37,14 +37,14 @@ def veriyi_yukle():
 
 data = veriyi_yukle()
 
-# 3. YAN MENÜ (NAVİGASYON)
+
 st.sidebar.image("https://cdn-icons-png.flaticon.com/512/2904/2904843.png", width=100)
 st.sidebar.title("Dijital Rehber v1.0")
 menu = st.sidebar.radio("Gitmek İstediğiniz Bölüm:",
                         ["🏠 Ana Sayfa", "🔍 Detaylı Arama", "🎭 Ruh Halim", "📚 Sure Kütüphanesi"])
 
 
-# 4. YARDIMCI FONKSİYONLAR
+
 def ayet_gorseli_olustur(ayet_metni, kaynak):
     width, height = 1080, 1080
     img = Image.new('RGB', (width, height), color='#121212')
@@ -67,7 +67,7 @@ def ayet_gorseli_olustur(ayet_metni, kaynak):
     return buf.getvalue()
 
 
-# 5. SAYFA İÇERİKLERİ
+
 if data:
     if menu == "🏠 Ana Sayfa":
         st.title("📖 Kur'an-ı Kerim Rehberi")
@@ -122,17 +122,42 @@ if data:
                     f"""<div class='ayet-box' style='border-left-color: #FF4B4B;'><h4>Şu anki haliniz için:</h4><p>"{metin}"</p><p style='text-align:right;'><b>{sure} Suresi, {no}. Ayet</b></p></div>""",
                     unsafe_allow_html=True)
 
-    elif menu == "🔍 Detaylı Arama":
+        elif menu == "🔍 Detaylı Arama":
         st.title("🔍 Kelime İle Ayet Ara")
-        kelime = st.text_input("Aramak istediğiniz kavram (Örn: Adalet, Namaz, Kalp):")
-
+        kelime = st.text_input("Aramak istediğiniz kavram (Örn: Adalet, Namaz, Allah):")
+        
         if kelime:
-            sonuclar = [(s['name'], a[0], a[1]) for s in data['sures'] for a in s['ayetler'] if
-                        kelime.lower() in a[1].lower()]
-            st.write(f"**{len(sonuclar)}** adet sonuç bulundu.")
-            for s, n, m in sonuclar[:30]:  # Performans için ilk 30 sonuç
-                with st.expander(f"{s} {n}"):
-                    st.write(m)
+            # Tüm sonuçları bul
+            sonuclar = [(s['name'], a[0], a[1]) for s in data['sures'] for a in s['ayetler'] if kelime.lower() in a[1].lower()]
+            toplam_sonuc = len(sonuclar)
+            
+            if toplam_sonuc > 0:
+                st.write(f"**{toplam_sonuc}** adet sonuç bulundu.")
+                
+                # --- SAYFALAMA MANTIĞI ---
+                sonuc_sayisi_per_page = 15
+                toplam_sayfa = (toplam_sonuc // sonuc_sayisi_per_page) + (1 if toplam_sonuc % sonuc_sayisi_per_page > 0 else 0)
+                
+                # Sayfa seçici (Slider veya Sayı Girişi)
+                if toplam_sayfa > 1:
+                    current_page = st.number_input(f"Sayfa seç (Toplam {toplam_sayfa})", min_value=1, max_value=toplam_sayfa, step=1)
+                else:
+                    current_page = 1
+                
+                # Gösterilecek aralığı belirle
+                start_idx = (current_page - 1) * sonuc_sayisi_per_page
+                end_idx = start_idx + sonuc_sayisi_per_page
+                
+                # Sadece o sayfanın sonuçlarını ekrana bas
+                for s, n, m in sonuclar[start_idx:end_idx]:
+                    with st.expander(f"📖 {s} Suresi, {n}. Ayet"):
+                        st.write(m)
+                        # Görsel İndirme Butonu (Opsiyonel: Arama sonuçlarına da ekleyebilirsin)
+                        # img_data = ayet_gorseli_olustur(m, f"{s} {n}")
+                        # st.download_button(label="🖼️ İndir", data=img_data, file_name=f"{s}_{n}.png", key=f"btn_{s}_{n}")
+            else:
+                st.warning("Eşleşen bir sonuç bulunamadı.")
+
 
     elif menu == "📚 Sure Kütüphanesi":
         st.title("📚 Sure Kütüphanesi")
@@ -146,5 +171,3 @@ if data:
                 for a in s['ayetler']:
                     st.write(f"**[{a[0]}]** {a[1]}")
 
-# 6. ÇALIŞTIRMA TALİMATI
-# Terminale şunu yaz: streamlit run web_app.py
